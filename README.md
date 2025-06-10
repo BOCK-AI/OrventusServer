@@ -19,7 +19,7 @@ This project is a Node.js backend Prisma ORM, and Neon PostgreSQL. It supports r
 - Error handling and not-found middleware
 
 ## Project Structure
-- `index.js` - Main entry point, server, and Socket.IO setup
+- `index.js` - Main entry point, server, and Socket.IO setup    
 - `controllers/` - Business logic for users, rides, and sockets
 - `routes/` - Express route definitions for auth and rides
 - `middleware/` - Authentication, error handler, and not-found middleware
