@@ -1,7 +1,9 @@
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
+import { PrismaClient } from "../generated/prisma/index.js";
 import NotFoundError from "../errors/not-found.js";
 import UnauthenticatedError from "../errors/unauthenticated.js";
+
+const prisma = new PrismaClient();
 
 const auth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -14,8 +16,7 @@ const auth = async (req, res, next) => {
     req.user = { id: payload.id, phone: payload.phone };
     req.socket = req.io;
 
-    const user = await User.findById(payload.id);
-
+    const user = await prisma.user.findUnique({ where: { id: payload.id } });
     if (!user) {
       throw new NotFoundError("User not found");
     }
