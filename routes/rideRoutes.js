@@ -1,7 +1,6 @@
 import express from 'express';
 import { createRide, updateRideStatus, acceptRide, getMyRides } from '../controllers/rideController.js';
-import auth from '../middleware/authentication.js';
-
+import { authenticateUser } from '../middleware/authentication.js';
 const router = express.Router();
 
 router.use((req, res, next) => {
@@ -9,9 +8,9 @@ router.use((req, res, next) => {
   next();
 });
 
-router.post('/create', auth, createRide);
-router.patch('/accept/:rideId', auth, acceptRide);
-router.patch('/update/:rideId', auth, updateRideStatus);
-router.get('/rides', auth, getMyRides);
+router.post('/create', authenticateUser, createRide);
+router.patch('/accept/:rideId', authenticateUser, acceptRide);
+router.patch('/update/:rideId', authenticateUser, updateRideStatus);
+router.get('/rides', authenticateUser, getMyRides);
 
 export default router;

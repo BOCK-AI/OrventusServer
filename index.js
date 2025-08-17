@@ -3,8 +3,14 @@ import EventEmitter from 'events';
 import express from 'express';
 import http from 'http';
 import { Server as socketIo } from 'socket.io';
-import notFoundMiddleware from './errors/not-found.js';
-import errorHandlerMiddleware from './errors/custom-api.js';
+import userRoutes from './routes/userRoutes.js'; // <-- ADD THIS LINE
+import cookieParser from 'cookie-parser'; // <-- ADD THIS
+
+
+import notFoundMiddleware from './middleware/not-found.js';
+import errorHandlerMiddleware from './middleware/error-handler.js';
+
+
 // Routers
 import authRoutes from './routes/authRoutes.js';
 import rideRoutes from './routes/rideRoutes.js';
@@ -16,6 +22,8 @@ EventEmitter.defaultMaxListeners = 20;
 
 const app = express();
 app.use(express.json());
+app.use(cookieParser()); // <-- ADD THIS
+
 
 const server = http.createServer(app);
 const io = new socketIo(server, { cors: { origin: '*' } });
@@ -32,6 +40,8 @@ handleSocketConnection(io);
 // Routes
 app.use('/auth', authRoutes);
 app.use('/rides', rideRoutes);
+app.use('/api/v1/users', userRoutes); // <-- ADD THIS LINE
+
 
 // Middleware
 app.use(notFoundMiddleware);

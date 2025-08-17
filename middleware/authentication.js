@@ -5,26 +5,26 @@ import UnauthenticatedError from "../errors/unauthenticated.js";
 
 const prisma = new PrismaClient();
 
-const auth = async (req, res, next) => {
+export const authenticateUser = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer")) {
-    throw new UnauthenticatedError("Authentication invalid");
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new UnauthenticatedError('Authentication invalid');
   }
-  const token = authHeader.split(" ")[1];
+
+  const token = authHeader.split(' ')[1];
+
   try {
     const payload = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    // Attach the user from the token's payload to the request object
     req.user = { id: payload.id, phone: payload.phone };
-    req.socket = req.io;
 
-    const user = await prisma.user.findUnique({ where: { id: payload.id } });
-    if (!user) {
-      throw new NotFoundError("User not found");
-    }
+    // --- The database check is now gone! ---
 
-    next();
+    next(); // Immediately grant access if token is valid.
   } catch (error) {
-    throw new UnauthenticatedError("Authentication invalid");
+    // This will catch expired tokens or invalid signatures
+    throw new UnauthenticatedError('Authentication invalid');
   }
 };
 
-export default auth;
+
