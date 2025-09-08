@@ -1,14 +1,15 @@
-import { PrismaClient } from '../generated/prisma/index.js';
+import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import { StatusCodes } from 'http-status-codes';
 import { BadRequestError, UnauthenticatedError } from '../errors/index.js';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 // Helper function to create a short-lived access token
 function createAccessToken(user) {
   return jwt.sign(
-    { id: user.id, phone: user.phone },
+    { id: user.id, role:user.role },
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
   );
@@ -17,51 +18,64 @@ function createAccessToken(user) {
 // Helper function to create a long-lived refresh token
 function createRefreshToken(user) {
   return jwt.sign(
-    { id: user.id, phone: user.phone },
+    { id: user.id, role: user.role },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
   );
 }
 
 // Handles both user registration and login, setting a secure httpOnly cookie
+// Replace the old auth function in userController.js with this new one
+// Replace the old auth function in userController.js with this new one
+
 export const auth = async (req, res) => {
-  const { phone, role } = req.body;
+  const { email, password, role } = req.body;
 
-  if (!phone) throw new BadRequestError('Phone number is required');
-  if (!role || !['customer', 'rider'].includes(role)) {
-    throw new BadRequestError('Valid role is required (customer or rider)');
+  if (!email || !password || !role) {
+    throw new BadRequestError('Please provide email, password, and role');
   }
 
-  const existingUser = await prisma.user.findUnique({ where: { phone } });
+  let user = await prisma.user.findUnique({ where: { email } });
 
-  if (existingUser && existingUser.role !== role) {
-    throw new BadRequestError('Phone number and role do not match');
+  if (user) {
+    // --- LOGIN LOGIC ---
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
+      throw new UnauthenticatedError('Invalid credentials');
+    }
+    // This is a subtle but important check. If the role doesn't match, reject.
+    if (user.role !== role) {
+       throw new UnauthenticatedError('A user with this email already exists with a different role.');
+    }
+
+  } else {
+    // --- REGISTRATION LOGIC ---
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        role,
+      },
+    });
   }
 
-  const user = existingUser || (await prisma.user.create({ data: { phone, role } }));
-
+  // --- CRITICAL CHANGE: TOKEN CREATION HAPPENS HERE, USING THE FINAL 'user' OBJECT ---
+  // This 'user' object is guaranteed to be the correct, most up-to-date one.
   const accessToken = createAccessToken(user);
   const refreshTokenValue = createRefreshToken(user);
 
   await prisma.refreshToken.create({
-    data: {
-      token: refreshTokenValue,
-      userId: user.id,
-    },
+    data: { token: refreshTokenValue, userId: user.id },
   });
 
-  res.cookie('refreshToken', refreshTokenValue, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    signed: false,
-    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-    sameSite: 'strict',
-  });
-
-  res.status(existingUser ? StatusCodes.OK : StatusCodes.CREATED).json({
-    message: existingUser ? 'User logged in successfully' : 'User created successfully',
+  res.status(user ? StatusCodes.OK : StatusCodes.CREATED).json({
+    message: user ? 'User logged in successfully' : 'User created successfully',
     user,
     access_token: accessToken,
+    refresh_token: refreshTokenValue,
   });
 };
 
@@ -140,9 +154,32 @@ export const logout = async (req, res) => {
 
 // Fetches the profile of the currently authenticated user
 export const getMe = async (req, res) => {
+  console.log('--- REACHED getMe CONTROLLER ---'); // <-- ADD THIS
+
   const user = await prisma.user.findUnique({
     where: { id: req.user.id },
   });
 
   res.status(StatusCodes.OK).json({ user });
+};
+
+// Add this new function inside controllers/userController.js
+
+export const updateMe = async (req, res) => {
+  // We only allow users to update their name and email
+  const { name, email } = req.body;
+
+  if (!name && !email) {
+    throw new BadRequestError('Please provide a name or email to update');
+  }
+
+  // The user's ID comes from our authentication middleware
+  const userId = req.user.id;
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { name, email },
+  });
+
+  res.status(StatusCodes.OK).json({ message: 'Profile updated successfully', user: updatedUser });
 };

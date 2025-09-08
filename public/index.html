@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OrventusServer Backend GUI</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>OrventusServer Backend GUI</h1>
+
+  <section class="card">
+    <h2>1. Authentication</h2>
+    <form id="auth-form">
+      <input type="text" id="phone" placeholder="Phone Number" required>
+      <input type="text" id="role" placeholder="Role (customer/rider)" value="customer" required>
+      <button type="submit">Login / Register</button>
+    </form>
+    <button id="logout-btn" style="display:none;">Logout</button>
+  </section>
+
+  <section class="card" id="profile-section" style="display:none;">
+    <h2>2. User Profile</h2>
+    <button id="get-profile-btn">Get My Profile</button>
+    <form id="update-form">
+      <input type="text" id="name" placeholder="Name">
+      <input type="email" id="email" placeholder="Email">
+      <button type="submit">Update Profile</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>API Response</h2>
+    <pre><code id="response-output">Awaiting action...</code></pre>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>

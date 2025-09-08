@@ -1,12 +1,16 @@
-// routes/userRoutes.js
+// In routes/userRoutes.js
+
 import express from 'express';
-import { getMe } from '../controllers/userController.js';
-// Import the newly named middleware
+import { getMe, updateMe } from '../controllers/userController.js';
 import { authenticateUser } from '../middleware/authentication.js';
+// Import our new validation middleware
+import { validateUpdateUser } from '../middleware/validation.js';
 
 const router = express.Router();
 
-// Use the new middleware name
-router.get('/me', authenticateUser, getMe);
+router.route('/me')
+  .get(authenticateUser, getMe)
+  // Add the validation middleware to the PUT route
+  .put(validateUpdateUser, authenticateUser, updateMe);
 
 export default router;
