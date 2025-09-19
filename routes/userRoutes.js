@@ -1,16 +1,17 @@
 // In routes/userRoutes.js
 
 import express from 'express';
-import { getMe, updateMe } from '../controllers/userController.js';
+import { getMyProfile, updateMyProfile } from '../controllers/userController.js'; // Add import
 import { authenticateUser } from '../middleware/authentication.js';
-// Import our new validation middleware
-import { validateUpdateUser } from '../middleware/validation.js';
+import { body } from 'express-validator'; // For validation
 
 const router = express.Router();
 
+const validateUpdate = [body('name').notEmpty().withMessage('Name cannot be empty')];
+
+// Chain the GET and PUT methods for the '/me' route
 router.route('/me')
-  .get(authenticateUser, getMe)
-  // Add the validation middleware to the PUT route
-  .put(validateUpdateUser, authenticateUser, updateMe);
+  .get(authenticateUser, getMyProfile)
+  .put(authenticateUser, validateUpdate, updateMyProfile); // <-- ADD THIS
 
 export default router;

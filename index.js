@@ -13,6 +13,7 @@ import errorHandlerMiddleware from './middleware/error-handler.js';
 import authRoutes from './routes/authRoutes.js';
 import rideRoutes from './routes/rideRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import miscRoutes from './routes/miscRoutes.js'; // Add this import
 
 dotenv.config();
 
@@ -20,7 +21,7 @@ const app = express();
 const server = http.createServer(app);
 
 // Use a variable for your frontend URL to keep it clean
-const frontendURL = 'http://localhost:53894'; // (Verify your port)
+const frontendURL = 'http://localhost:61591'; // (Verify your port)
 
 const io = new socketIo(server, {
   cors: {
@@ -47,9 +48,10 @@ app.use((req, res, next) => {
   return next();
 });
 
-app.use('/auth', authRoutes);
-app.use('/rides', rideRoutes);
-app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/auth', authRoutes); // Use a standard API path
+app.use('/api/v1/rides', rideRoutes);
+app.use('/api/v1/user', userRoutes);
+app.use('/api/v1/misc', miscRoutes); // Add this line
 
 app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);

@@ -1,11 +1,10 @@
 -- CreateTable
 CREATE TABLE "public"."User" (
     "id" SERIAL NOT NULL,
-    "email" TEXT NOT NULL,
-    "password" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
     "name" TEXT,
     "role" TEXT NOT NULL,
-    "phone" TEXT,
+    "profilePictureUrl" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -47,7 +46,7 @@ CREATE TABLE "public"."RefreshToken" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "public"."User"("email");
+CREATE UNIQUE INDEX "User_phone_key" ON "public"."User"("phone");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "RefreshToken_token_key" ON "public"."RefreshToken"("token");

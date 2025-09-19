@@ -15,23 +15,85 @@ const emitRideUpdate = (req, ride) => {
 // --- THIS IS THE NEW FUNCTION ---
 // Calculates fare estimates for different vehicle types
 export const getRideEstimates = async (req, res) => {
-  const { pickupAddress, dropAddress } = req.body;
+  // In a real app, you would get this from a mapping service like Google Maps Distance Matrix API.
+  // For now, we'll continue to simulate it with a random distance.
+  const distanceInKm = parseFloat((Math.random() * 20 + 2).toFixed(2)); // Random distance between 2 and 22 km
 
-  // In a real app, you would use a service like Google Maps Distance Matrix API here.
-  // For now, we'll simulate it with a random distance.
-  const distanceInKm = parseFloat((Math.random() * 15 + 5).toFixed(2)); // Random distance between 5 and 20 km
+  // --- NEW: Define our cab types with their properties ---
+  const vehicleTypes = [
+    {
+      name: 'Go Non AC',
+      category: 'upto10lakh',
+      description: 'Everyday affordable rides',
+      capacity: 4,
+    },
+    {
+      name: 'Orventus Go',
+      category: 'upto10lakh', // Assuming this is also in the base category
+      description: 'Affordable compact AC rides',
+      capacity: 4,
+    },
+    {
+      name: 'Premier',
+      category: '10to15lakh',
+      description: 'Comfortable sedans, top-quality drivers',
+      capacity: 4,
+    },
+    {
+      name: 'XL+ (Innova)',
+      category: 'above15lakh',
+      description: 'Spacious, Comfortable Innovas',
+      capacity: 6,
+    },
+     {
+      name: 'Orventus Pet',
+      category: '10to15lakh', // Assuming a mid-range cost for this service
+      description: 'Ride with your furry friend',
+      capacity: 4,
+    },
+  ];
 
-  const vehicleRates = {
-    bike: 10,   // $10 per km
-    auto: 15,   // $15 per km
-    cab: 20,    // $20 per km
-    premium: 30 // $30 per km
+  // --- NEW: The Fare Calculation Logic based on your rules ---
+  const calculateFare = (category, distance) => {
+    let baseFare = 0;
+    let baseDistance = 4; // km
+    let perKmRate = 0;
+
+    switch (category) {
+      case '10to15lakh':
+        baseFare = 115;
+        perKmRate = 28;
+        break;
+      case 'above15lakh':
+        baseFare = 130;
+        perKmRate = 32;
+        break;
+      case 'upto10lakh':
+      default:
+        baseFare = 100;
+        perKmRate = 24;
+        break;
+    }
+
+    if (distance <= baseDistance) {
+      return baseFare;
+    } else {
+      const additionalDistance = distance - baseDistance;
+      const totalFare = baseFare + (additionalDistance * perKmRate);
+      return parseFloat(totalFare.toFixed(2));
+    }
   };
 
-  const estimates = Object.keys(vehicleRates).map(vehicle => {
-    const rate = vehicleRates[vehicle];
-    const fare = parseFloat((rate * distanceInKm).toFixed(2));
-    return { vehicle, distance: distanceInKm, fare };
+  // --- NEW: Generate the estimates using the new logic ---
+  const estimates = vehicleTypes.map(vehicle => {
+    const fare = calculateFare(vehicle.category, distanceInKm);
+    return {
+      vehicle: vehicle.name,
+      description: vehicle.description,
+      capacity: vehicle.capacity,
+      distance: distanceInKm,
+      fare: fare,
+    };
   });
 
   res.status(StatusCodes.OK).json({ estimates });
@@ -73,8 +135,35 @@ export const createRide = async (req, res) => {
   res.status(StatusCodes.CREATED).json({ ride: newRide });
 };
 
+// In controllers/rideController.js
+
+export const getMyRides = async (req, res) => {
+  const { id: userId } = req.user;
+
+  const rides = await prisma.ride.findMany({
+    where: {
+      OR: [{ customerId: userId }, { riderId: userId }],
+    },
+    // --- THIS IS THE KEY CHANGE ---
+    // Also include the full User object for the customer and rider
+    include: {
+      customer: {
+        select: { name: true, profilePictureUrl: true }, // Only select the fields we need
+      },
+      rider: {
+        select: { name: true, profilePictureUrl: true },
+      },
+    },
+    // --- END CHANGE ---
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  res.status(StatusCodes.OK).json({ rides });
+};
+
 // --- EXISTING FUNCTIONS (Unchanged) ---
-export const getMyRides = async (req, res) => { /* ... existing code ... */ };
 //export const createRide = async (req, res) => { /* ... existing code ... */ };
 export const getAvailableRides = async (req, res) => { /* ... existing code ... */ };
 export const acceptRide = async (req, res) => { /* ... existing code ... */ };
