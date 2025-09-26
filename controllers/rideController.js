@@ -1,171 +1,158 @@
-// controllers/rideController.js
-
 import { PrismaClient } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
 import { UnauthenticatedError, BadRequestError } from '../errors/index.js';
+import axios from 'axios';
 
 const prisma = new PrismaClient();
 
+const calculateFareEstimates = (distanceInKm) => {
+  const vehicleTypes = [
+    { name: 'Go Non AC', category: 'base', description: 'Everyday affordable rides', capacity: 4 },
+    { name: 'Orventus Go', category: 'base', description: 'Affordable compact AC rides', capacity: 4 },
+    { name: 'Premier', category: 'midrange', description: 'Comfortable sedans, top-quality drivers', capacity: 4 },
+    { name: 'XL+ (Innova)', category: 'premium', description: 'Spacious, Comfortable Innovas', capacity: 6 },
+    { name: 'Orventus Pet', category: 'midrange', description: 'Ride with your furry friend', capacity: 4 },
+  ];
+  const calculateFare = (category, distance) => {
+    let baseFare = 0, perKmRate = 0; const baseDistance = 4;
+    switch (category) {
+      case 'midrange': baseFare = 115; perKmRate = 28; break;
+      case 'premium': baseFare = 130; perKmRate = 32; break;
+      default: baseFare = 100; perKmRate = 24; break;
+    }
+    if (distance <= baseDistance) return baseFare;
+    const totalFare = baseFare + ((distance - baseDistance) * perKmRate);
+    return parseFloat(totalFare.toFixed(2));
+  };
+  return vehicleTypes.map(vehicle => {
+    const fare = calculateFare(vehicle.category, distanceInKm);
+    return {  vehicle: vehicle.name, 
+      description: vehicle.description,
+      capacity: vehicle.capacity,
+      distance: distanceInKm, 
+      fare  };
+  });
+};
+
 const emitRideUpdate = (req, ride) => {
   const eventName = `ride-update-${ride.id}`;
-  console.log(`--- Emitting WebSocket event: '${eventName}' ---`);
   req.io.emit(eventName, ride);
 };
 
-// --- THIS IS THE NEW FUNCTION ---
-// Calculates fare estimates for different vehicle types
 export const getRideEstimates = async (req, res) => {
-  // In a real app, you would get this from a mapping service like Google Maps Distance Matrix API.
-  // For now, we'll continue to simulate it with a random distance.
-  const distanceInKm = parseFloat((Math.random() * 20 + 2).toFixed(2)); // Random distance between 2 and 22 km
-
-  // --- NEW: Define our cab types with their properties ---
-  const vehicleTypes = [
-    {
-      name: 'Go Non AC',
-      category: 'upto10lakh',
-      description: 'Everyday affordable rides',
-      capacity: 4,
-    },
-    {
-      name: 'Orventus Go',
-      category: 'upto10lakh', // Assuming this is also in the base category
-      description: 'Affordable compact AC rides',
-      capacity: 4,
-    },
-    {
-      name: 'Premier',
-      category: '10to15lakh',
-      description: 'Comfortable sedans, top-quality drivers',
-      capacity: 4,
-    },
-    {
-      name: 'XL+ (Innova)',
-      category: 'above15lakh',
-      description: 'Spacious, Comfortable Innovas',
-      capacity: 6,
-    },
-     {
-      name: 'Orventus Pet',
-      category: '10to15lakh', // Assuming a mid-range cost for this service
-      description: 'Ride with your furry friend',
-      capacity: 4,
-    },
-  ];
-
-  // --- NEW: The Fare Calculation Logic based on your rules ---
-  const calculateFare = (category, distance) => {
-    let baseFare = 0;
-    let baseDistance = 4; // km
-    let perKmRate = 0;
-
-    switch (category) {
-      case '10to15lakh':
-        baseFare = 115;
-        perKmRate = 28;
-        break;
-      case 'above15lakh':
-        baseFare = 130;
-        perKmRate = 32;
-        break;
-      case 'upto10lakh':
-      default:
-        baseFare = 100;
-        perKmRate = 24;
-        break;
-    }
-
-    if (distance <= baseDistance) {
-      return baseFare;
-    } else {
-      const additionalDistance = distance - baseDistance;
-      const totalFare = baseFare + (additionalDistance * perKmRate);
-      return parseFloat(totalFare.toFixed(2));
-    }
-  };
-
-  // --- NEW: Generate the estimates using the new logic ---
-  const estimates = vehicleTypes.map(vehicle => {
-    const fare = calculateFare(vehicle.category, distanceInKm);
-    return {
-      vehicle: vehicle.name,
-      description: vehicle.description,
-      capacity: vehicle.capacity,
-      distance: distanceInKm,
-      fare: fare,
-    };
-  });
-
+  // This version uses a simulated distance
+  const distanceInKm = parseFloat((Math.random() * 20 + 2).toFixed(2));
+  const estimates = calculateFareEstimates(distanceInKm);
   res.status(StatusCodes.OK).json({ estimates });
 };
-// In controllers/rideController.js
 
-export const createRide = async (req, res) => {
-  const { id: userId } = req.user;
-  
-  // --- THIS IS THE KEY CHANGE ---
-  // Get vehicle and fare from the request body, not hardcoded values
-  const {
-    pickupAddress,
-    dropAddress,
-    vehicle,
-    fare
-  } = req.body;
-
-  // In a real app, you would also get distance and coordinates
-  // For now, we'll keep those hardcoded.
-  const distance = parseFloat((Math.random() * 15 + 5).toFixed(2));
-
-  const newRide = await prisma.ride.create({
-    data: {
-      pickupAddress,
-      dropAddress,
-      customerId: userId,
-      vehicle, // Use the value from the frontend
-      fare,    // Use the value from the frontend
-      distance,
-      // Keep these hardcoded for now
-      pickupLatitude: 12.9716,
-      pickupLongitude: 77.5946,
-      dropLatitude: 12.9716,
-      dropLongitude: 77.5946,
-    },
-  });
-
-  res.status(StatusCodes.CREATED).json({ ride: newRide });
+export const initiateRide = async (req, res) => {
+  const { pickupPlaceId, dropoffPlaceId } = req.body;
+  if (!pickupPlaceId || !dropoffPlaceId) {
+    throw new BadRequestError('Pickup and Dropoff locations are required.');
+  }
+  const apiKey = process.env.GOOGLE_API_KEY;
+  const url = `https://maps.googleapis.com/maps/api/directions/json`;
+  try {
+    const response = await axios.get(url, {
+      params: { origin: `place_id:${pickupPlaceId}`, destination: `place_id:${dropoffPlaceId}`, key: apiKey },
+    });
+    if (response.data.status !== 'OK' || !response.data.routes || response.data.routes.length === 0) {
+      throw new Error(response.data.error_message || 'No route found');
+    }
+    const route = response.data.routes[0];
+    const leg = route.legs[0];
+    const distanceInKm = leg.distance.value / 1000;
+    const estimates = calculateFareEstimates(distanceInKm);
+    res.status(StatusCodes.OK).json({
+      estimates,
+      distance: leg.distance.text,
+      duration: leg.duration.text,
+      startLocation: leg.start_location,
+      endLocation: leg.end_location,
+      polyline: route.overview_polyline.points,
+    });
+  } catch (error) {
+    console.error('Directions API Error:', error);
+    throw new BadRequestError('Could not calculate route. Please try different locations.');
+  }
 };
 
-// In controllers/rideController.js
 
 export const getMyRides = async (req, res) => {
   const { id: userId } = req.user;
-
   const rides = await prisma.ride.findMany({
-    where: {
-      OR: [{ customerId: userId }, { riderId: userId }],
-    },
-    // --- THIS IS THE KEY CHANGE ---
-    // Also include the full User object for the customer and rider
+    where: { OR: [{ customerId: userId }, { riderId: userId }] },
     include: {
-      customer: {
-        select: { name: true, profilePictureUrl: true }, // Only select the fields we need
-      },
-      rider: {
-        select: { name: true, profilePictureUrl: true },
-      },
+      customer: { select: { name: true, profilePictureUrl: true } },
+      rider: { select: { name: true, profilePictureUrl: true } },
     },
-    // --- END CHANGE ---
-    orderBy: {
-      createdAt: 'desc',
-    },
+    orderBy: { createdAt: 'desc' },
   });
-
   res.status(StatusCodes.OK).json({ rides });
 };
 
-// --- EXISTING FUNCTIONS (Unchanged) ---
-//export const createRide = async (req, res) => { /* ... existing code ... */ };
-export const getAvailableRides = async (req, res) => { /* ... existing code ... */ };
-export const acceptRide = async (req, res) => { /* ... existing code ... */ };
-export const updateRideStatus = async (req, res) => { /* ... existing code ... */ };
-export const getAllRides = async (req, res) => { /* ... existing code ... */ };
+export const createRide = async (req, res) => {
+  const { id: userId } = req.user;
+  const { pickupAddress, dropAddress, vehicle, fare } = req.body;
+  const distance = parseFloat((Math.random() * 15 + 5).toFixed(2));
+  const newRide = await prisma.ride.create({
+    data: {
+      pickupAddress, dropAddress, vehicle, fare, distance,
+      customerId: userId,
+      pickupLatitude: 12.9716, pickupLongitude: 77.5946,
+      dropLatitude: 12.9716, dropLongitude: 77.5946,
+    },
+  });
+  res.status(StatusCodes.CREATED).json({ ride: newRide });
+};
+
+export const getAvailableRides = async (req, res) => {
+  const availableRides = await prisma.ride.findMany({
+    where: { status: 'SEARCHING_FOR_RIDER' },
+    orderBy: { createdAt: 'desc' },
+  });
+  res.status(StatusCodes.OK).json({ rides: availableRides });
+};
+
+export const acceptRide = async (req, res) => {
+  const { id: riderId } = req.user;
+  const { id: rideId } = req.params;
+  const ride = await prisma.ride.update({
+    where: { id: parseInt(rideId), status: 'SEARCHING_FOR_RIDER' },
+    data: { riderId, status: 'ACCEPTED' },
+  });
+  
+  emitRideUpdate(req, ride); // CRITICAL: Notify the customer
+  
+  res.status(StatusCodes.OK).json({ message: 'Ride accepted successfully', ride });
+};
+
+export const updateRideStatus = async (req, res) => {
+  const { id: riderId } = req.user;
+  const { id: rideId } = req.params;
+  const { status } = req.body;
+  if (!status || !['PICKED_UP', 'COMPLETED'].includes(status)) {
+    throw new BadRequestError('Please provide a valid status.');
+  }
+  const ride = await prisma.ride.findUnique({ where: { id: parseInt(rideId) } });
+  if (!ride) throw new BadRequestError(`No ride found with id ${rideId}`);
+  if (ride.riderId !== riderId) throw new UnauthenticatedError('You are not authorized to update this ride.');
+  if (status === 'COMPLETED' && ride.status !== 'PICKED_UP') {
+    throw new BadRequestError('Cannot complete a ride before picking up the passenger.');
+  }
+   const updatedRide = await prisma.ride.update({ where: { id: parseInt(rideId) }, data: { status } });
+
+  emitRideUpdate(req, updatedRide); // CRITICAL: Notify the customer
+
+  res.status(StatusCodes.OK).json({ message: 'Ride status updated', ride: updatedRide });
+};
+
+// --- THIS IS THE MISSING FUNCTION ---
+export const getAllRides = async (req, res) => {
+  // TODO: This should be protected for ADMIN users only in the future
+  const rides = await prisma.ride.findMany();
+  res.status(StatusCodes.OK).json({ rides });
+};
+
+
