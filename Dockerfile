@@ -1,19 +1,28 @@
-# Use an official Node.js runtime as a parent image
+# Use an official Node.js runtime
 FROM node:18-slim
 
-# Set the working directory in the container
+# Install openssl, as recommended by Prisma
+RUN apt-get update && apt-get install -y openssl
+
+# Set the working directory
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json
+# --- THIS IS THE KEY CHANGE ---
+# 1. Copy package files first
 COPY package*.json ./
 
-# Install app dependencies
+# 2. Install dependencies to leverage Docker cache
 RUN npm install
 
-# Copy the rest of the application code into the container
+# 3. NOW copy the rest of your application code, including the prisma schema
 COPY . .
 
-# Your app binds to port 3000, so you need to expose this port
+# 4. NOW, run prisma generate, since the schema is available
+RUN npx prisma generate
+# --- END CHANGE ---
+
+
+# Your app binds to port 3000
 EXPOSE 3000
 
 # The command to run your app
