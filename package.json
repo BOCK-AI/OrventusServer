@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "p:gen": "prisma generate"
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",
