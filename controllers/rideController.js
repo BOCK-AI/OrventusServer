@@ -155,4 +155,41 @@ export const getAllRides = async (req, res) => {
   res.status(StatusCodes.OK).json({ rides });
 };
 
+// Add this new function to controllers/rideController.js
+
+
+
+// Add this new function to controllers/rideController.js
+
+export const getRoutePolyline = async (req, res) => {
+  const { startLat, startLng, endLat, endLng } = req.query;
+  if (!startLat || !startLng || !endLat || !endLng) {
+    throw new BadRequestError('Start and end coordinates are required.');
+  }
+
+  const apiKey = process.env.GOOGLE_API_KEY;
+  const url = `https://maps.googleapis.com/maps/api/directions/json`;
+  try {
+    const response = await axios.get(url, {
+      params: {
+        origin: `${startLat},${startLng}`,
+        destination: `${endLat},${endLng}`,
+        key: apiKey,
+      },
+    });
+    if (response.data.status !== 'OK' || !response.data.routes[0]) {
+      throw new Error('No route found from Google');
+    }
+    const route = response.data.routes[0];
+    const leg = route.legs[0]; // The first leg of the journey
+
+
+    res.status(StatusCodes.OK).json({
+      polyline: route.overview_polyline.points,
+      duration: leg.duration.text, // e.g., "15 mins"
+    });  
+  } catch (error) {
+    throw new BadRequestError('Could not calculate route.');
+  }
+};
 

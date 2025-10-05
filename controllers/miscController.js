@@ -1,31 +1,45 @@
 // controllers/miscController.js
 import axios from 'axios';
 import { StatusCodes } from 'http-status-codes';
+import { BadRequestError } from '../errors/index.js';
 
 export const getGooglePlaces = async (req, res) => {
-  const { input } = req.query; // Get the search term from the query params
-
+  const { input } = req.query;
   if (!input) {
     return res.status(StatusCodes.BAD_REQUEST).json({ msg: 'Input query is required' });
   }
-
-  const apiKey = process.env.GOOGLE_API_KEY; // We'll store the key securely in .env
+  const apiKey = process.env.GOOGLE_API_KEY;
   const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json`;
-
   try {
     const response = await axios.get(url, {
-      params: {
-        input: input,
-        key: apiKey,
-        components: 'country:in',
-      },
+      params: { input, key: apiKey, components: 'country:in' },
     });
-    
-    // Send Google's response back to our Flutter app
     res.status(StatusCodes.OK).json(response.data);
-
   } catch (error) {
     console.error('Google Places API Error:', error.response?.data);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ msg: 'Failed to fetch places' });
+  }
+};
+
+// --- THIS IS THE MISSING FUNCTION ---
+export const getGooglePlaceDetails = async (req, res) => {
+  const { placeId } = req.query;
+  if (!placeId) {
+    throw new BadRequestError('Place ID is required.');
+  }
+  const apiKey = process.env.GOOGLE_API_KEY;
+  const url = `https://maps.googleapis.com/maps/api/place/details/json`;
+  try {
+    const response = await axios.get(url, {
+      params: {
+        place_id: placeId,
+        key: apiKey,
+        fields: 'formatted_address,geometry', // Only fetch the fields we need
+      },
+    });
+    res.status(StatusCodes.OK).json(response.data);
+  } catch (error) {
+    console.error('Google Place Details API Error:', error.response?.data);
+    throw new BadRequestError('Could not fetch place details.');
   }
 };

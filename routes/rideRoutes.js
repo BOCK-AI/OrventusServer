@@ -9,7 +9,8 @@ import {
   updateRideStatus,
   getMyRides,
   getRideEstimates, // <-- NEW IMPORT
-  initiateRide 
+  initiateRide ,
+  getRoutePolyline 
 } from '../controllers/rideController.js';
 
 import { authenticateUser } from '../middleware/authentication.js';
@@ -21,6 +22,7 @@ const router = express.Router();
 // --- NEW ROUTE FOR GETTING FARE ESTIMATES ---
 // Any authenticated user can get an estimate.
 router.route('/initiate').post(authenticateUser, initiateRide); // <-- ADD THIS NEW ROUTE
+router.route('/route').get(authenticateUser, getRoutePolyline);
 
 
 // --- EXISTING ROUTES ---
