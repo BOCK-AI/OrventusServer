@@ -20,25 +20,26 @@ const prisma = new PrismaClient();
 const app = express();
 const server = http.createServer(app);
 
-const frontendURL_dev = 'http://localhost:55136'; // Make sure this port is correct
-const frontendURL_prod = 'https://orventus-472112.web.app/'; // Your new Firebase URL
+//const frontendURL_dev = 'http://localhost:62836'; // Make sure this port is correct
+//const frontendURL_prod = 'https://orventus-472112.web.app/'; // Your new Firebase URL
 
-const allowedOrigins = [frontendURL_dev, frontendURL_prod];
+//const allowedOrigins = [frontendURL_dev, frontendURL_prod];
+app.use(cors());
+const io = new socketIo(server, { cors: { origin: '*' } });
 
+//const io = new socketIo(server, {
+  //cors: { origin: allowedOrigins, // Use the array here
+    //methods: ["GET", "POST"],
+    //credentials: true },
+  //allowEIO3: true,
+  //pingInterval: 10000,
+  //pingTimeout: 5000,
+//});
 
-const io = new socketIo(server, {
-  cors: { origin: allowedOrigins, // Use the array here
-    methods: ["GET", "POST"],
-    credentials: true },
-  allowEIO3: true,
-  pingInterval: 10000,
-  pingTimeout: 5000,
-});
-
-app.use(cors({
-   origin: allowedOrigins, 
-   credentials: true 
-  }));
+//app.use(cors({
+  // origin: allowedOrigins, 
+   //credentials: true 
+  //}));
 app.use(express.json());
 app.use(cookieParser());
 app.use((req, res, next) => { req.io = io; return next(); });
@@ -78,6 +79,6 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`HTTP server is running on http://localhost:${PORT}`);
+server.listen(process.env.PORT || 3000, '0.0.0.0', () => {
+  console.log(`Server is listening on port ${process.env.PORT || 3000}`);
 });
