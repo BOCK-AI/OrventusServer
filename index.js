@@ -20,19 +20,23 @@ const prisma = new PrismaClient();
 const app = express();
 const server = http.createServer(app);
 
-const frontendURL = 'http://localhost:56245'; // Make sure this port is correct
+const frontendURL = 'http://localhost:55136'; // Make sure this port is correct
 const frontendURL_prod = 'https://orventus-472112.web.app/'; // Your new Firebase URL
 
+const allowedOrigins = [frontendURL_dev, frontendURL_prod];
+
+
 const io = new socketIo(server, {
-  cors: { origin: [frontendURL_dev, frontendURL_prod],
-     methods: ["GET", "POST"], credentials: true },
+  cors: { origin: allowedOrigins, // Use the array here
+    methods: ["GET", "POST"],
+    credentials: true },
   allowEIO3: true,
   pingInterval: 10000,
   pingTimeout: 5000,
 });
 
 app.use(cors({
-   origin: [frontendURL_dev, frontendURL_prod], 
+   origin: allowedOrigins, 
    credentials: true 
   }));
 app.use(express.json());
