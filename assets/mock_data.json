@@ -1,0 +1,71 @@
+{
+  "users": [
+    {
+      "id": "u1",
+      "name": "Ananya Rao",
+      "email": "ananya@example.com",
+      "phone": "+91-9000000001",
+      "rating": 4.6
+    },
+    {
+      "id": "u2",
+      "name": "Rohit Singh",
+      "email": "rohit@example.com",
+      "phone": "+91-9000000002",
+      "rating": 4.2
+    },
+    {
+      "id": "u3",
+      "name": "Maya Patel",
+      "email": "maya@example.com",
+      "phone": "+91-9000000003",
+      "rating": 4.8
+    }
+  ],
+  "drivers": [
+    {
+      "id": "d1",
+      "name": "Suresh Kumar",
+      "vehicle": "Sedan - KA01AB1234",
+      "status": "active",
+      "earnings": 12500.0
+    },
+    {
+      "id": "d2",
+      "name": "Fatima Shaikh",
+      "vehicle": "SUV - KA02CD5678",
+      "status": "inactive",
+      "earnings": 9800.0
+    }
+  ],
+  "rides": [
+    {
+      "id": "r1",
+      "user": "Ananya Rao",
+      "driver": "Suresh Kumar",
+      "from": "MG Road",
+      "to": "Airport",
+      "status": "completed",
+      "fare": 599.0
+    },
+    {
+      "id": "r2",
+      "user": "Rohit Singh",
+      "driver": "Fatima Shaikh",
+      "from": "Koramangala",
+      "to": "Indiranagar",
+      "status": "cancelled",
+      "fare": 0.0
+    },
+    {
+      "id": "r3",
+      "user": "Maya Patel",
+      "driver": "Suresh Kumar",
+      "from": "City Mall",
+      "to": "Railway Station",
+      "status": "completed",
+      "fare": 349.0
+    }
+  ],
+  "totalRevenue": 948.0
+}
