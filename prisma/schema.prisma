@@ -21,7 +21,8 @@ model User {
   profilePictureUrl String?
   otp               String?  // <-- ADD THIS LINE: To store the 4-digit code
   otpExpiry         DateTime? // <-- ADD THIS LINE: To make sure the OTP expires
-  
+  isActive          Boolean  @default(true) // <-- ADD THIS LINE
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -43,6 +44,9 @@ model Ride {
   dropLatitude    Float
   dropLongitude   Float
   fare            Float
+  commission      Float    @default(0) // <-- ADD THIS LINE
+  review    Review? // A ride can have one review (optional)
+
   customer        User     @relation("CustomerRides", fields: [customerId], references: [id])
   customerId      Int
   rider           User?    @relation("RiderRides", fields: [riderId], references: [id])
@@ -59,6 +63,73 @@ model RefreshToken {
   isValid   Boolean  @default(true)
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Vehicle {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  costPerKm Float
+  icon      String   // We store the icon name as a string
+  isActive  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Add this new model to your schema.prisma file
+
+// Replace the old PromoCode model with this one
+
+model PromoCode {
+  id             Int      @id @default(autoincrement())
+  code           String   @unique
+  usageLimit     Int      @default(0)
+  totalUsed      Int      @default(0)
+  expiryDate     String
+  // --- THIS IS THE FIX ---
+  // The field should be named discountValue, not discount
+  discountValue  Float
+  // --- END FIX ---
+  discountType   String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Float    // e.g., 4.5
+  comment   String?
+  rideId    Int      @unique // A ride can only have one review
+  ride      Ride     @relation(fields: [rideId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DocumentType {
+  id              Int      @id @default(autoincrement())
+  name            String   @unique
+  requiresExpiry  Boolean  @default(false)
+  isActive        Boolean  @default(true)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Setting {
+  key   String @id // The unique key, e.g., "WEBSITE_NAME"
+  value String // The value for that key
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  type      String   // e.g., "All Users", "All Drivers"
+  title     String
+  message   String
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

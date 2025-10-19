@@ -92,18 +92,46 @@ export const getMyRides = async (req, res) => {
   res.status(StatusCodes.OK).json({ rides });
 };
 
+// Replace the old createRide function in rideController.js
+
 export const createRide = async (req, res) => {
-  const { id: userId } = req.user;
-  const { pickupAddress, dropAddress, vehicle, fare } = req.body;
+  // Get the logged-in user's info
+  const { id: loggedInUserId, role: loggedInUserRole } = req.user;
+  
+  // Get the ride data from the request body
+  const { pickupAddress, dropAddress, vehicle, fare, customerPhone } = req.body;
+
+  let finalCustomerId = loggedInUserId;
+
+  // --- THIS IS THE NEW LOGIC ---
+  // If a customerPhone is provided AND the logged-in user is an 'admin',
+  // we find or create the customer and use their ID.
+  if (loggedInUserRole === 'admin' && customerPhone) {
+    const customer = await prisma.user.findUnique({
+      where: { phone: customerPhone },
+    });
+    if (!customer) {
+      // For simplicity, we'll throw an error if the customer doesn't exist.
+      // A more advanced version could create the customer.
+      throw new BadRequestError(`Customer with phone number ${customerPhone} not found.`);
+    }
+    finalCustomerId = customer.id;
+  }
+  // --- END NEW LOGIC ---
+
+  // The rest of the function is the same, but uses finalCustomerId
   const distance = parseFloat((Math.random() * 15 + 5).toFixed(2));
+  const commission = parseFloat((fare * 0.20).toFixed(2));
+  
   const newRide = await prisma.ride.create({
     data: {
-      pickupAddress, dropAddress, vehicle, fare, distance,
-      customerId: userId,
+      pickupAddress, dropAddress, vehicle, fare, distance, commission,
+      customerId: finalCustomerId, // Use the determined customer ID
       pickupLatitude: 12.9716, pickupLongitude: 77.5946,
       dropLatitude: 12.9716, dropLongitude: 77.5946,
     },
   });
+
   res.status(StatusCodes.CREATED).json({ ride: newRide });
 };
 
@@ -149,9 +177,31 @@ export const updateRideStatus = async (req, res) => {
 };
 
 // --- THIS IS THE MISSING FUNCTION ---
+// Replace the old getAllRides function in controllers/rideController.js
+
+// Replace the old getAllRides function in controllers/rideController.js
+
 export const getAllRides = async (req, res) => {
-  // TODO: This should be protected for ADMIN users only in the future
-  const rides = await prisma.ride.findMany();
+  // We will add admin-only protection later
+  console.log("--- [SUCCESS] Entered getAllRides controller ---");
+  
+  const rides = await prisma.ride.findMany({
+    // --- THIS IS THE KEY ENHANCEMENT ---
+    // For each ride, also include the full User object for the customer and rider
+    include: {
+      customer: {
+        select: { id: true, name: true, phone: true }, // Select the fields the UI needs
+      },
+      rider: {
+        select: { id: true, name: true, phone: true },
+      },
+    },
+    // --- END ENHANCEMENT ---
+    orderBy: {
+      createdAt: 'desc', // Show newest rides first
+    },
+  });
+  
   res.status(StatusCodes.OK).json({ rides });
 };
 

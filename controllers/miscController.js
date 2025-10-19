@@ -1,19 +1,14 @@
-// controllers/miscController.js
 import axios from 'axios';
 import { StatusCodes } from 'http-status-codes';
 import { BadRequestError } from '../errors/index.js';
 
 export const getGooglePlaces = async (req, res) => {
   const { input } = req.query;
-  if (!input) {
-    return res.status(StatusCodes.BAD_REQUEST).json({ msg: 'Input query is required' });
-  }
+  if (!input) return res.status(StatusCodes.OK).json({ predictions: [] }); // Return empty for empty input
   const apiKey = process.env.GOOGLE_API_KEY;
   const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json`;
   try {
-    const response = await axios.get(url, {
-      params: { input, key: apiKey, components: 'country:in' },
-    });
+    const response = await axios.get(url, { params: { input, key: apiKey, components: 'country:in' } });
     res.status(StatusCodes.OK).json(response.data);
   } catch (error) {
     console.error('Google Places API Error:', error.response?.data);
@@ -21,22 +16,13 @@ export const getGooglePlaces = async (req, res) => {
   }
 };
 
-// --- THIS IS THE MISSING FUNCTION ---
 export const getGooglePlaceDetails = async (req, res) => {
   const { placeId } = req.query;
-  if (!placeId) {
-    throw new BadRequestError('Place ID is required.');
-  }
+  if (!placeId) throw new BadRequestError('Place ID is required.');
   const apiKey = process.env.GOOGLE_API_KEY;
   const url = `https://maps.googleapis.com/maps/api/place/details/json`;
   try {
-    const response = await axios.get(url, {
-      params: {
-        place_id: placeId,
-        key: apiKey,
-        fields: 'formatted_address,geometry', // Only fetch the fields we need
-      },
-    });
+    const response = await axios.get(url, { params: { place_id: placeId, key: apiKey, fields: 'formatted_address,geometry' } });
     res.status(StatusCodes.OK).json(response.data);
   } catch (error) {
     console.error('Google Place Details API Error:', error.response?.data);

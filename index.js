@@ -13,6 +13,13 @@ import authRoutes from './routes/authRoutes.js';
 import rideRoutes from './routes/rideRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import miscRoutes from './routes/miscRoutes.js';
+import statsRoutes from './routes/statsRoutes.js'; // <-- ADD THIS IMPORT
+import vehicleRoutes from './routes/vehicleRoutes.js'; // Add this import
+import promoCodeRoutes from './routes/promoCodeRoutes.js'; // Add this import
+import reviewRoutes from './routes/reviewRoutes.js'; // Add this import
+import documentTypeRoutes from './routes/documentTypeRoutes.js'; // Add this import
+import settingsRoutes from './routes/settingsRoutes.js'; // Add this import
+import notificationRoutes from './routes/notificationRoutes.js';
 
 dotenv.config();
 const prisma = new PrismaClient();
@@ -20,34 +27,46 @@ const prisma = new PrismaClient();
 const app = express();
 const server = http.createServer(app);
 
-//const frontendURL_dev = 'http://localhost:62836'; // Make sure this port is correct
-//const frontendURL_prod = 'https://orventus-472112.web.app/'; // Your new Firebase URL
+const frontendURL_dev = 'http://localhost:65372'; // Make sure this port is correct
+const frontendURL_prod = 'https://orventus-472112.web.app/'; // Your new Firebase URL
 
-//const allowedOrigins = [frontendURL_dev, frontendURL_prod];
-app.use(cors());
-const io = new socketIo(server, { cors: { origin: '*' } });
+const allowedOrigins = [frontendURL_dev, frontendURL_prod];
+//app.use(cors());
+//const io = new socketIo(server, { cors: { origin: '*' } });
 
-//const io = new socketIo(server, {
-  //cors: { origin: allowedOrigins, // Use the array here
-    //methods: ["GET", "POST"],
-    //credentials: true },
-  //allowEIO3: true,
-  //pingInterval: 10000,
-  //pingTimeout: 5000,
-//});
+const io = new socketIo(server, {
+  cors: { origin: allowedOrigins, // Use the array here
+    methods: ["GET", "POST"],
+    credentials: true },
+  allowEIO3: true,
+  pingInterval: 10000,
+  pingTimeout: 5000,
+});
 
-//app.use(cors({
-  // origin: allowedOrigins, 
-   //credentials: true 
-  //}));
+app.use(cors({
+   origin: allowedOrigins, 
+   credentials: true 
+  }));
 app.use(express.json());
 app.use(cookieParser());
 app.use((req, res, next) => { req.io = io; return next(); });
 
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] Received ${req.method} request for ${req.originalUrl}`);
+  next();
+});
+
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/user', userRoutes);
+app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/rides', rideRoutes);
+app.use('/api/v1/stats', statsRoutes); // <-- ADD THIS LINE
 app.use('/api/v1/misc', miscRoutes);
+app.use('/api/v1/vehicles', vehicleRoutes); // Add this line
+app.use('/api/v1/promocodes', promoCodeRoutes); // Add this line
+app.use('/api/v1/reviews', reviewRoutes); // Add this line
+app.use('/api/v1/documents', documentTypeRoutes); // Add this line
+app.use('/api/v1/settings', settingsRoutes); // Add this line```
+app.use('/api/v1/notifications', notificationRoutes);
 
 app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);
@@ -79,6 +98,6 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(process.env.PORT || 3000, '0.0.0.0', () => {
-  console.log(`Server is listening on port ${process.env.PORT || 3000}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`HTTP server is running on http://localhost:${PORT}`);
 });
