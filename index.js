@@ -27,7 +27,7 @@ const prisma = new PrismaClient();
 const app = express();
 const server = http.createServer(app);
 
-const frontendURL_dev = 'http://localhost:65372'; // Make sure this port is correct
+const frontendURL_dev = 'http://localhost:53188'; // Make sure this port is correct
 const frontendURL_prod = 'https://orventus-472112.web.app/'; // Your new Firebase URL
 
 const allowedOrigins = [frontendURL_dev, frontendURL_prod];
